@@ -49,7 +49,20 @@
             </el-form-item>
           </el-form>
         </div>
-        <div v-if="pageimage">Image</div>
+        <div v-if="pageimage">
+          <el-form ref="form" :model="formImage" label-width="280px" @submit.native.prevent>
+            <el-form-item>
+              <input class="el-button" type="file" ref="image" v-on:change="handleImageUpload()"/>
+            </el-form-item>
+            <el-form-item label="Описание изображения (<200сим.)">
+              <el-input type="text" v-model="formImage.description"></el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="SendImage">Отправить</el-button>
+              <el-button @click="ClearFileData">Отмена</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
       </el-main>
     </el-container>
   </el-container>
@@ -79,6 +92,10 @@ export default {
     formFile:{
       description:'',
       document:''
+    },
+    formImage:{
+      description:'',
+      photo:''
     }
   }),
   methods:{
@@ -98,7 +115,7 @@ export default {
       this.pageimage = true
     },
     SendText(){
-      let urltext = `https://api.telegram.org/bot${this.olesyakey}/sendMessage?chat_id=${this.chat_id}&text=${this.formText.text}`
+      let urltext = `https://api.telegram.org/bot${this.olesyakey}/sendMessage?chat_id=${this.chat_id}&text=${urlencode(this.formText.text)}&parse_mode=markdown`
       axios.get(urltext).then(resp=>{
         this.$notify({
           title: 'Олеся сообщает',
@@ -125,11 +142,34 @@ export default {
 
       })
     },
+    SendImage(){
+      let urlimage = `https://api.telegram.org/bot${this.olesyakey}/sendPhoto`
+      let formData = new FormData();
+      formData.append('photo',this.formImage.photo)
+      formData.append('chat_id',this.chat_id)
+      formData.append('caption',this.formImage.description)
+      axios.post(urlimage,formData,{headers:{'Content-Type': 'multipart/form-data'}}).then(resp=>{
+        this.$notify({
+          title: 'Олеся сообщает',
+          message: 'Изображение успешно отправлено',
+          type: 'success'
+        });
+      }).catch(err=>{
+        this.$notify({
+          title: 'Олеся сообщает',
+          message: 'Что-то пошло не так',
+          type: 'error'
+        });
+      })
+    },
     ClearFileData(){
       this.formFile.description = ''
     },
     handleFileUpload(){
       this.formFile.document = this.$refs.file.files[0]
+    },
+    handleImageUpload(){
+      this.formImage.photo = this.$refs.image.files[0]
     }
   }
 };
